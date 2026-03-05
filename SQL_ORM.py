@@ -18,10 +18,11 @@ class Song:
 
 
 class User:
-    def __init__(self, user_id, email, password):
+    def __init__(self, user_id, email, password, salt):
         self.user_id = user_id
         self.email = email
         self.password = password
+        self.salt = salt
 
     def __str__(self):
         return f"{self.__dict__}"
@@ -66,12 +67,12 @@ class App_ORM:
         self.conn.commit()
 
     def execute(self, sql, *argv):
-        self.cursor.execute(sql, *argv)
+        self.cursor.execute(sql, argv)
 
     def _ensure_tables(self):
         sqls = [
             """CREATE TABLE IF NOT EXISTS songs (
-                song_id INTEGER PRIMARY KEY,
+                song_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT,
                 artist TEXT,
                 album TEXT,
@@ -81,14 +82,14 @@ class App_ORM:
                 );
             """,
             """CREATE TABLE IF NOT EXISTS users (
-                user_id INTEGER PRIMARY KEY,
+                user_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email TEXT,
                 password TEXT,
                 salt TEXT
                 );
             """,
             """CREATE TABLE IF NOT EXISTS playlists (
-                playlist_id INTEGER PRIMARY KEY,
+                playlist_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT,
                 user_id INTEGER,
                 creation_date TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -112,7 +113,7 @@ class App_ORM:
 
     # ----------- General ----------- #
     def _insert_item(self, item):
-        sql = f"INSERT INTO users ({" ".join(item.__dict__.keys())}) VALUES ({",".join("?" * len(item.__dict__.keys()))})"
+        sql = f"INSERT INTO users ({", ".join(item.__dict__.keys())}) VALUES ({", ".join("?" * len(item.__dict__.keys()))})"
         self.open_DB()
         self.execute(sql, *item.__dict__.values())
         self.commit()
@@ -120,24 +121,24 @@ class App_ORM:
 
     # ----------- Users ----------- #
     def insert_user(self, user: User):
-        self._insert_item(user)
+        self._insert_item(dict(list(user.__dict__.items())[1:]))
 
-    def get_users_by_email(self, email) -> User:
+    def get_user_by_email(self, email) -> User:
         sql = "SELECT * FROM users WHERE email=?"
         self.open_DB()
-        self.execute(sql, (email,))
-        rows = self.cursor.fetchall()
+        self.execute(sql, email)
+        row = self.cursor.fetchone()
         self.close_DB()
-        return [User(*row) for row in rows]
+        return User(*row)
 
     # ----------- Songs ----------- #
     def insert_song(self, song: Song):
-        self._insert_item(song)
+        self._insert_item(dict(list(song.__dict__.items())[1:]))
 
     def get_song_id(self, name, artist):
         sql = "SELECT song_id FROM songs WHERE name=? AND artist=?"
         self.open_DB()
-        self.execute(sql, (name, artist, ))
+        self.execute(sql, name, artist)
         song_id  = self.cursor.fetchone()
         self.close_DB()
         return song_id
@@ -145,7 +146,7 @@ class App_ORM:
     def get_song_by_id(self, song_id):
         sql = "SELECT * FROM songs WHERE song_id=?"
         self.open_DB()
-        self.execute(sql, (song_id, ))
+        self.execute(sql, song_id)
         song = self.cursor.fetchone()
         self.close_DB()
         return Song(*song)
@@ -153,12 +154,12 @@ class App_ORM:
     def increase_likes_count(self, song_id):
         sql = "UPDATE songs SET likes_count=likes_count+1 WHERE song_id=?"
         self.open_DB()
-        self.execute(sql, (song_id, ))
+        self.execute(sql, song_id)
         self.close_DB()
 
     # ----------- Playlists ----------- #
     def insert_playlist(self, playlist: Playlist):
-        self._insert_item(playlist)
+        self._insert_item(dict(list(playlist.__dict__.items())[1:]))
 
     # ----------- Playlist songs ----------- #
     def insert_playlist_song(self, playlist_song: Playlist_song):
