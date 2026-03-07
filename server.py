@@ -1,7 +1,6 @@
 __author__ = "Guy Mosseri"
 
 import socket
-import json
 import threading
 import os
 from http_recv import recv_http
@@ -21,10 +20,12 @@ def handle_client(client: socket.socket, addr):
         if not msg["status"]:
             client.close()
             break
-        if msg["url"].split("\\")[-1] == "login":
+        url = msg["url"].split("\\")[-1]
+        if url == "login":
             Msg_handler.handle_login(client, msg)
-        elif msg["url"].split("\\")[-1] == "signup":
+        elif url == "signup":
             Msg_handler.handle_signup(client, msg)
+
 
 
 

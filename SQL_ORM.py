@@ -1,6 +1,7 @@
 __author__ = "Guy Mosseri"
 
 import sqlite3
+from datetime import datetime
 
 
 class Song:
@@ -26,6 +27,13 @@ class User:
 
     def __str__(self):
         return f"{self.__dict__}"
+
+
+class Verification_info:
+    def __init__(self, user_id, code, time=datetime.now()):
+        self.user_id = user_id
+        self.code = code
+        self.time = time
 
 
 class Playlist:
@@ -56,7 +64,10 @@ class App_ORM:
         self._ensure_tables()
 
     def open_DB(self):
-        self.conn = sqlite3.connect('schedule.db')
+        self.conn = sqlite3.connect(
+    "Meowify.db",
+    detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
+)
         self.cursor = self.conn.cursor()
 
     def close_DB(self):
@@ -103,6 +114,13 @@ class App_ORM:
                 FOREIGN KEY (playlist_id) REFERENCES playlists(playlist_id),
                 FOREIGN KEY (song_id) REFERENCES songs(song_id)
                 );
+            """,
+            """CREATE TABLE IF NOT EXISTS verification_info (
+                user_id INTEGER,
+                code TEXT,
+                time TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id)
+                );
             """
         ]
         self.open_DB()
@@ -139,7 +157,7 @@ class App_ORM:
         sql = "SELECT song_id FROM songs WHERE name=? AND artist=?"
         self.open_DB()
         self.execute(sql, name, artist)
-        song_id  = self.cursor.fetchone()
+        song_id = self.cursor.fetchone()
         self.close_DB()
         return song_id
 
@@ -164,3 +182,7 @@ class App_ORM:
     # ----------- Playlist songs ----------- #
     def insert_playlist_song(self, playlist_song: Playlist_song):
         self._insert_item(playlist_song)
+
+    # ----------- Verification info ----------- #
+    def insert_verification_info(self, verification_info: Verification_info):
+        self._insert_item(verification_info)
