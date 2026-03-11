@@ -28,6 +28,9 @@ class User:
     def __str__(self):
         return f"{self.__dict__}"
 
+    def __eq__(self, other):
+        return self.email == other.email and self.password == other.password
+
 
 class Verification_info:
     def __init__(self, user_id, code, time=datetime.now()):
@@ -65,9 +68,9 @@ class App_ORM:
 
     def open_DB(self):
         self.conn = sqlite3.connect(
-    "Meowify.db",
-    detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
-)
+            "Meowify.db",
+            detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
+        )
         self.cursor = self.conn.cursor()
 
     def close_DB(self):
@@ -148,6 +151,12 @@ class App_ORM:
         row = self.cursor.fetchone()
         self.close_DB()
         return User(*row)
+
+    def user_exists(self, email) -> bool:
+        user = self.get_user_by_email(email)
+        if user:
+            return True
+        return False
 
     # ----------- Songs ----------- #
     def insert_song(self, song: Song):
