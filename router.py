@@ -2,33 +2,29 @@ __author__ = "Guy Mosseri"
 
 import re
 from handlers.auth_handler import Auth_handler
-from services.http_service import Http_service
+from handlers.home_handler import Home_handler
+from services.http_service import HttpResponse, HttpRequest
 
 
 class Router:
     ROUTES = {
         ("POST", r"^/login$"): Auth_handler.login,
         ("POST", r"^/signup$"): Auth_handler.signup,
+        ("GET", r"^/home$"): Home_handler.Home,
     }
 
     @staticmethod
-    def route_request(client, msg):
-        path = msg["url"]
-        method = msg["method"]
+    def route_request(client, req: HttpRequest):
+        path = req.path
+        method = req.method
 
         for route_method, pattern, handler in Router.ROUTES:
             if route_method == method:
                 match = re.match(pattern, path)
                 if match:
                     params = match.groups()
-                    handler(client, msg, *params)
+                    handler(client, req, *params)
                     return
 
-        client.send(Http_service.build_response(
-            msg["version"],
-            "404",
-            "Not Found",
-            {"Content-Type": "text/plain"},
-            b"Route not found"
-        )
-        )
+        res = HttpResponse.not_found().to_bytes()
+        client.send(f"{res}")
