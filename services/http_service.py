@@ -71,6 +71,11 @@ class HttpResponse:
         return HttpResponse("HTTP/1.1", "401", "Unauthorized",
                             {"Content-Type": "text/plain", "Content-Length": f"{len(error)}"}, f"{error}".encode())
 
+    @staticmethod
+    def upgrade(key):
+        return HttpResponse("HTTP/1.1", "101", "Switching Protocols",
+                            {"Upgrade": "websocket", "Connection": "Upgrade", "Sec-WebSocket-Accept": key})
+
 
 class HttpRequest:
     def __init__(self, method, path, version, headers, body=b""):
