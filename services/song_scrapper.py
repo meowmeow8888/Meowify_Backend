@@ -5,8 +5,8 @@ import yt_dlp
 def download_multiple(song_name, limit=3):
     base_dir = Path(__file__).resolve().parent
 
-    songs_path = (base_dir / "../downloads/songs").resolve()
-    thumbs_path = (base_dir / "../downloads/thumbnails").resolve()
+    songs_path = (base_dir / "../saves/songs").resolve()
+    thumbs_path = (base_dir / "../saves/thumbnails").resolve()
 
     songs_path.mkdir(parents=True, exist_ok=True)
     thumbs_path.mkdir(parents=True, exist_ok=True)
