@@ -9,7 +9,7 @@ class Http_service:
             try:
                 chunk = c.recv(2 ** 16)
                 if not chunk:
-                    return {"status": False}
+                    return None
                 data += chunk
 
                 if b"\r\n\r\n" in data:
@@ -51,20 +51,31 @@ class HttpResponse:
         self.reason_phrase = reason_phrase
         self.headers = headers
         self.body = body
+        self.add_cors()
 
     def to_bytes(self):
         seperator = "\r\n"
         headers = seperator.join(f"{k}: {v}" for k, v in self.headers.items())
         return f"{self.version} {self.status_code} {self.reason_phrase}{seperator}{headers}{seperator}{seperator}".encode() + self.body
 
+    def add_header(self, key, value):
+        self.headers[key] = value
+
+    def add_cors(self):
+        self.headers["Access-Control-Allow-Origin"] = "http://localhost:5173" # at production this needs to be the url
+        self.headers["Access-Control-Allow-Credentials"] = "true"
+
+
     @staticmethod
     def not_found():
-        return HttpResponse("HTTP/1.1", "404", "Not Found", {"Content-Type": "text/plain", "Content-Length": "15"},
-                            b"Route not found")
+        body = b"Route not found"
+        return HttpResponse("HTTP/1.1", "404", "Not Found",
+                            {"Content-Type": "text/plain", "Content-Length": f"{len(body)}"},
+                            body)
 
     @staticmethod
     def ok():
-        return HttpResponse("HTTP/1.1", "200", "Ok", {"Content-Length": "0"})
+        return HttpResponse("HTTP/1.1", "200", "OK", {})
 
     @staticmethod
     def unauthorized(error):

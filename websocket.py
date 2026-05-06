@@ -29,7 +29,11 @@ class wsMsg:
         if not isinstance(other, wsMsg):
             return NotImplemented
 
-        return wsMsg(self.fin, self.opcode, self.payload + other.payload)
+        if type(self.payload) == type(other.payload):
+            return wsMsg(self.fin, self.opcode, self.payload + other.payload)
+        if type(self.payload) == bytes:
+            return wsMsg(self.fin, self.opcode, self.payload + other.payload.encode())
+        return wsMsg(self.fin, self.opcode, self.payload.encode() + other.payload)
 
     @staticmethod
     def ping():
@@ -156,7 +160,10 @@ class websocket:
                     raise ValueError("Unexpected opcode")
 
         msg = msgs[0]
+        t = type(msg.payload)
         for m in msgs[1:]:
+            if t != type(m.payload):
+                raise ValueError("different fragment types")
             msg += m
         if msg == wsMsg.OP_TEXT:
             msg.payload = msg.payload.decode()

@@ -10,10 +10,11 @@ from router import Router
 def handle_client(client: socket.socket, addr):
     while True:
         req: HttpRequest = Http_service.recv_http(client)
-        print(f"Received msg from: {addr}\n{req}")
         if not req:
             client.close()
+            # print(f"{addr} - Connection Closed")
             break
+        print(f"{req.method} {req.path} {req.body[:100]}")
 
         Router.route_request(client, req)
 

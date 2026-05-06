@@ -7,16 +7,25 @@ from services.http_service import HttpResponse, HttpRequest
 
 
 class Router:
-    ROUTES = {
-        ("POST", r"^/login$"): Auth_handler.login,
-        ("POST", r"^/signup$"): Auth_handler.signup,
-        ("GET", r"^/home$"): Home_handler.Home,
-    }
+    ROUTES = [
+        ("POST", r"^/login$", Auth_handler.login),
+        ("POST", r"^/signup$", Auth_handler.signup),
+        ("POST", r"^/verify$", Auth_handler.verify),
+        ("GET", r"^/$", Home_handler.Home),
+        ("GET", r"^/me$", Auth_handler.me)
+    ]
 
     @staticmethod
     def route_request(client, req: HttpRequest):
         path = req.path
         method = req.method
+
+        if method == "OPTIONS":
+            res = HttpResponse.ok()
+            res.add_header("Access-Control-Allow-Headers", "Content-Type")
+            res.add_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            client.send(res.to_bytes())
+            return
 
         for route_method, pattern, handler in Router.ROUTES:
             if route_method == method:
@@ -27,4 +36,4 @@ class Router:
                     return
 
         res = HttpResponse.not_found().to_bytes()
-        client.send(f"{res}")
+        client.send(res)
