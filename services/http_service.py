@@ -51,7 +51,8 @@ class HttpResponse:
         self.reason_phrase = reason_phrase
         self.headers = headers
         self.body = body
-        self.add_cors()
+        if status_code != "101":
+            self.add_cors()
 
     def to_bytes(self):
         seperator = "\r\n"

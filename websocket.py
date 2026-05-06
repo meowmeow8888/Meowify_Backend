@@ -22,9 +22,6 @@ class wsMsg:
         self.opcode = opcode
         self.payload = payload
 
-    def __eq__(self, other):
-        return self.opcode == other
-
     def __add__(self, other):
         if not isinstance(other, wsMsg):
             return NotImplemented
@@ -85,8 +82,8 @@ class websocket:
 
     def handshake(self, upgrade_req: HttpRequest):
         guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
-        key = upgrade_req.headers.get("Sec-WebSocket-Key")
-        res_key = b64encode(sha1((key + guid).encode()).digest()).decode()
+        key = upgrade_req.headers.get("sec-websocket-key")
+        res_key = b64encode(sha1((key.strip() + guid).encode()).digest()).decode()
         res = HttpResponse.upgrade(res_key).to_bytes()
         self.client.send(res)
 
@@ -145,12 +142,16 @@ class websocket:
 
             for i in range(len(payload)):
                 payload[i] ^= mask[i % 4]
-
+            print(fin, opcode, payload)
             if not msgs:
                 if opcode == 1:
                     msgs.append(wsMsg.text(payload))
                 elif opcode == 2:
                     msgs.append(wsMsg.binary(payload))
+                elif opcode == 8:
+                    self.send(wsMsg.close("connection failed"))
+                    self.client.close()
+                    return
                 else:
                     raise ValueError("Unexpected opcode")
             else:
