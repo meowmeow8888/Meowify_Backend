@@ -1,18 +1,46 @@
 import socket
+import threading
+from queue import Queue
 
-from services.http_service import HttpRequest
-from websocket import websocket
+from services.http_service import HttpRequest, HttpResponse
+from websocket import websocket, wsMsg
+from event_handler import Event_Handler, Instruction
 
 
 class Home_handler:
     @staticmethod
-    def Home(client: socket.socket, req: HttpRequest):
-        if req.headers.get("Connection", None) != "Upgrade":
+    def msg_parser(msg: wsMsg):
+        payload = msg.payload
+        if not payload:
             return
-        if req.headers.get("Upgrade", None) != "websocket":
+        try:
+            inst = payload["inst"]
+            params = payload["params"]
+            return Instruction(inst, params)
+        except Exception as e:
+            print(e)
             return
 
-        ws = websocket()
-        res = ws.handshake(req)
-        client.send(res)
-        # idk add a loop maybe ill think about u tomorrow
+
+    @staticmethod
+    def Home(client: socket.socket, req: HttpRequest):
+        if req.headers.get("Connection", None) != "Upgrade":
+            client.send(HttpResponse.not_found().to_bytes())
+            return
+        if req.headers.get("Upgrade", None) != "websocket":
+            client.send(HttpResponse.not_found().to_bytes())
+            return
+
+        print("connecting ws...")
+
+        ws = websocket(client)
+        ws.handshake(req)
+
+        q : Queue[Instruction] = Queue()
+        threading.Thread(target=Event_Handler.event_loop, args=(ws, ))
+        while True:
+            msg = ws.recv()
+            if msg == wsMsg.OP_TEXT:
+                inst = Home_handler.msg_parser(msg)
+                if inst:
+                    q.put(inst)

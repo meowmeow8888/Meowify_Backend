@@ -5,14 +5,15 @@ from datetime import datetime
 
 
 class Song:
-    def __init__(self, song_id, name, artist, album, release_date, likes_count, file_path):
+    def __init__(self, song_id, name, artist, album, release_date, likes_count, song_path, thumbnail_path):
         self.song_id = song_id
         self.name = name
         self.artist = artist
         self.album = album
         self.release_date = release_date
         self.likes_count = likes_count
-        self.file_path = file_path
+        self.song_path = song_path
+        self.thumbnail_path = thumbnail_path
 
     def __str__(self):
         return f"{self.__dict__}"
@@ -60,6 +61,14 @@ class Playlist_song:
         return f"{self.__dict__}"
 
 
+class Session:
+    def __init__(self, session_id, user_id, created_at, last_seen):
+        self.session_id = session_id
+        self.user_id = user_id
+        self.created_at:datetime = created_at
+        self.last_seen = last_seen
+
+
 class App_ORM:
     def __init__(self):
         self.conn = None
@@ -92,7 +101,8 @@ class App_ORM:
                 album TEXT,
                 release_date DATE,
                 likes_count INTEGER,
-                file_path TEXT
+                song_path TEXT
+                thumbnail_path TEXT
                 );
             """,
             """CREATE TABLE IF NOT EXISTS users (
@@ -121,7 +131,15 @@ class App_ORM:
             """CREATE TABLE IF NOT EXISTS verification_info (
                 user_id INTEGER,
                 code TEXT,
-                time TIMESTAMP,
+                time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id)
+                );
+            """,
+            """CREATE TABLE IF NOT EXISTS sessions (
+                session_id TEXT PRIMARY KEY,
+                user_id INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(user_id)
                 );
             """
@@ -132,17 +150,16 @@ class App_ORM:
         self.commit()
         self.close_DB()
 
-    # ----------- General ----------- #
-    def _insert_item(self, item):
-        sql = f"INSERT INTO users ({", ".join(item.__dict__.keys())}) VALUES ({", ".join("?" * len(item.__dict__.keys()))})"
-        self.open_DB()
-        self.execute(sql, *item.__dict__.values())
-        self.commit()
-        self.close_DB()
-
     # ----------- Users ----------- #
     def insert_user(self, user: User):
-        self._insert_item(dict(list(user.__dict__.items())[1:]))
+        sql = """
+            INSERT INTO users (email, password, salt)
+            VALUES (?, ?, ?)
+        """
+        self.open_DB()
+        self.execute(sql, user.email, user.password, user.salt)
+        self.commit()
+        self.close_DB()
 
     def get_user_by_email(self, email) -> User:
         sql = "SELECT * FROM users WHERE email=?"
@@ -150,7 +167,7 @@ class App_ORM:
         self.execute(sql, email)
         row = self.cursor.fetchone()
         self.close_DB()
-        return User(*row)
+        return User(*row) if row else None
 
     def user_exists(self, email) -> bool:
         user = self.get_user_by_email(email)
@@ -158,9 +175,32 @@ class App_ORM:
             return True
         return False
 
+    def get_user_by_id(self, user_id):
+        sql = "SELECT * FROM users WHERE user_id=?"
+        self.open_DB()
+        self.execute(sql, user_id)
+        row = self.cursor.fetchone()
+        self.close_DB()
+        return User(*row)
+
     # ----------- Songs ----------- #
     def insert_song(self, song: Song):
-        self._insert_item(dict(list(song.__dict__.items())[1:]))
+        sql = """
+            INSERT INTO songs (name, artist, album, release_date, likes_count, song_path, thumbnail_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """
+        self.open_DB()
+        self.execute(sql,
+                     song.name,
+                     song.artist,
+                     song.album,
+                     song.release_date,
+                     song.likes_count,
+                     song.song_path,
+                     song.thumbnail_path
+                     )
+        self.commit()
+        self.close_DB()
 
     def get_song_id(self, name, artist):
         sql = "SELECT song_id FROM songs WHERE name=? AND artist=?"
@@ -176,7 +216,15 @@ class App_ORM:
         self.execute(sql, song_id)
         song = self.cursor.fetchone()
         self.close_DB()
-        return Song(*song)
+        return Song(*song) if song else None
+
+    def get_song_path(self, name, artist):
+        sql = "SELECT song_path FROM songs WHERE name=? AND artist=?"
+        self.open_DB()
+        self.execute(sql, name, artist)
+        song_path = self.cursor.fetchone()
+        self.close_DB()
+        return song_path
 
     def increase_likes_count(self, song_id):
         sql = "UPDATE songs SET likes_count=likes_count+1 WHERE song_id=?"
@@ -184,14 +232,101 @@ class App_ORM:
         self.execute(sql, song_id)
         self.close_DB()
 
+    def search_close_songs(self, query):
+        sql = "SELECT name FROM songs WHERE LOWER(name) LIKE ? ORDER BY likes_count DESC LIMIT 5"
+        self.open_DB()
+        self.execute(sql, f"%{query.lower()}%")
+        names = [row[0] for row in self.cursor.fetchall()]
+        self.close_DB()
+        return names
+
+    def get_song_info_by_name(self, name):
+        sql = "SELECT * FROM songs WHERE name=?"
+        self.open_DB()
+        self.execute(sql, name)
+        song = self.cursor.fetchone()
+        self.close_DB()
+        return Song(*song) if song else None
+
     # ----------- Playlists ----------- #
     def insert_playlist(self, playlist: Playlist):
-        self._insert_item(dict(list(playlist.__dict__.items())[1:]))
+        sql = """
+            INSERT INTO playlists (title, user_id, creation_date)
+            VALUES (?, ?, ?)
+        """
+        self.open_DB()
+        self.execute(sql,
+                     playlist.title,
+                     playlist.user_id,
+                     playlist.creation_date
+                     )
+        self.commit()
+        self.close_DB()
 
     # ----------- Playlist songs ----------- #
     def insert_playlist_song(self, playlist_song: Playlist_song):
-        self._insert_item(playlist_song)
+        sql = """
+            INSERT INTO playlist_songs (playlist_id, song_id, position)
+            VALUES (?, ?, ?)
+        """
+        self.open_DB()
+        self.execute(sql,
+                     playlist_song.playlist_id,
+                     playlist_song.song_id,
+                     playlist_song.position
+                     )
+        self.commit()
+        self.close_DB()
 
     # ----------- Verification info ----------- #
     def insert_verification_info(self, verification_info: Verification_info):
-        self._insert_item(verification_info)
+        sql = """
+            INSERT INTO verification_info (user_id, code, time)
+            VALUES (?, ?, ?)
+        """
+        self.open_DB()
+        self.execute(sql,
+                     verification_info.user_id,
+                     verification_info.code,
+                     verification_info.time
+                     )
+        self.commit()
+        self.close_DB()
+
+    def get_verification_info_by_user_id(self, user_id):
+        sql = "SELECT * FROM verification_info WHERE user_id=?"
+        self.open_DB()
+        self.execute(sql, user_id)
+        row = self.cursor.fetchone()
+        self.close_DB()
+        return Verification_info(*row) if row else None
+
+    def del_verification_info_by_user_id(self, user_id):
+        sql = "DELETE FROM verification_info WHERE user_id=?"
+        self.open_DB()
+        self.execute(sql, user_id)
+        self.commit()
+        self.close_DB()
+
+    # ----------- Sessions ----------- #
+    def insert_session(self, session_id, user_id):
+        sql = "INSERT INTO sessions (session_id, user_id) VALUES (?, ?)"
+        self.open_DB()
+        self.execute(sql, session_id, user_id)
+        self.commit()
+        self.close_DB()
+
+    def get_session(self, session_id):
+        sql = "SELECT * FROM sessions WHERE session_id=?"
+        self.open_DB()
+        self.execute(sql, session_id)
+        row = self.cursor.fetchone()
+        self.close_DB()
+        return Session(*row) if row else None
+
+    def update_last_seen(self, session_id, user_id, last_seen):
+        sql = "UPDATE sessions SET last_seen=? WHERE session_id=? AND user_id=?"
+        self.open_DB()
+        self.execute(sql, last_seen, session_id, user_id)
+        self.commit()
+        self.close_DB()
