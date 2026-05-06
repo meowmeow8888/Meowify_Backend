@@ -15,24 +15,50 @@ def download_multiple(song_name, limit=3):
 
     ydl_opts = {
         'format': 'bestaudio/best',
-
         'outtmpl': {
             'default': str(songs_path / '%(title)s-%(id)s.%(ext)s'),
             'thumbnail': str(thumbs_path / '%(title)s-%(id)s.%(ext)s'),
         },
         'writethumbnail': True,
-
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
-
+        'postprocessors': [
+            {
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            },
+            {
+                'key': 'FFmpegThumbnailsConvertor',
+                'format': 'jpg',
+            }],
     }
 
+    results = []
+
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([query])
+        info = ydl.extract_info(query, download=True)
+
+        entries = info.get('entries', []) if 'entries' in info else [info]
+
+        for entry in entries:
+            title = entry.get("title")
+            vid_id = entry.get("id")
+
+            audio_path = songs_path / f"{title}-{vid_id}.mp3"
+            thumb_path = thumbs_path / f"{title}-{vid_id}.jpg"
+
+            results.append({
+                "title": title,
+                "artist": entry.get("artist") or entry.get("uploader"),
+                "album": entry.get("album"),
+                "release_date": entry.get("release_date") or entry.get("upload_date"),
+                "audio_path": str(audio_path),
+                "thumbnail_path": str(thumb_path),
+            })
+
+    return results
 
 
 if __name__ == '__main__':
-    download_multiple("The Great Divide")
+    data = download_multiple("The Great Divide")
+    for song in data:
+        print(song)

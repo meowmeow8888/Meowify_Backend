@@ -37,6 +37,7 @@ class AudioStreamer:
         if not data:
             return None
 
+
         self.offset += len(data)
         self.file.close()
         return data
@@ -51,3 +52,8 @@ class AudioStreamer:
     def jump_to_time(self, seconds, bitrate_kbps=128):
         byte_offset = int((bitrate_kbps * 1000 / 8) * seconds)
         self.jump_to_byte(byte_offset)
+
+    def get_time(self, bitrate_kbps=128):
+        bytes_per_sec = (bitrate_kbps * 1000) / 8
+        seconds = self.offset / bytes_per_sec
+        return seconds
