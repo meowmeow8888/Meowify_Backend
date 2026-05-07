@@ -1,4 +1,5 @@
 from pathlib import Path
+from mutagen.mp3 import MP3
 
 
 class AudioStreamer:
@@ -6,9 +7,12 @@ class AudioStreamer:
     chunk_size = 32 * 1024
 
     def __init__(self, file_name):
-        self.file_path = self.songs_path / file_name
+        self.file_path = self.songs_path / Path(file_name).resolve()
         self.file = None
         self.offset = 0
+        audio = MP3(self.file_path)
+        self.duration = int(audio.info.length)
+        self.bitrate = int(audio.info.bitrate / 1000)
 
     def _open(self):
         if self.file:
@@ -49,11 +53,11 @@ class AudioStreamer:
         self.offset = self._sync_to_frame()
         self.file.close()
 
-    def jump_to_time(self, seconds, bitrate_kbps=128):
-        byte_offset = int((bitrate_kbps * 1000 / 8) * seconds)
+    def jump_to_time(self, seconds):
+        byte_offset = int((self.bitrate * 1000 / 8) * seconds)
         self.jump_to_byte(byte_offset)
 
-    def get_time(self, bitrate_kbps=128):
-        bytes_per_sec = (bitrate_kbps * 1000) / 8
+    def get_time(self):
+        bytes_per_sec = (self.bitrate * 1000) / 8
         seconds = self.offset / bytes_per_sec
         return seconds

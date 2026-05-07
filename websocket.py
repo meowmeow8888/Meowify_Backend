@@ -1,6 +1,7 @@
 from base64 import b64encode
 from hashlib import sha1
 import socket
+import json
 
 from services.http_service import HttpRequest, HttpResponse
 
@@ -142,7 +143,6 @@ class websocket:
 
             for i in range(len(payload)):
                 payload[i] ^= mask[i % 4]
-            print(fin, opcode, payload)
             if not msgs:
                 if opcode == 1:
                     msgs.append(wsMsg.text(payload))
@@ -166,6 +166,6 @@ class websocket:
             if t != type(m.payload):
                 raise ValueError("different fragment types")
             msg += m
-        if msg == wsMsg.OP_TEXT:
-            msg.payload = msg.payload.decode()
+        if msg.opcode == wsMsg.OP_TEXT:
+            msg.payload = json.loads(msg.payload.decode())
         return msg

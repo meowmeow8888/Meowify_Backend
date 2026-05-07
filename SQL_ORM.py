@@ -101,7 +101,7 @@ class App_ORM:
                 album TEXT,
                 release_date DATE,
                 likes_count INTEGER,
-                song_path TEXT
+                song_path TEXT,
                 thumbnail_path TEXT
                 );
             """,
@@ -224,7 +224,7 @@ class App_ORM:
         self.execute(sql, name, artist)
         song_path = self.cursor.fetchone()
         self.close_DB()
-        return song_path
+        return song_path[0] if song_path else None
 
     def increase_likes_count(self, song_id):
         sql = "UPDATE songs SET likes_count=likes_count+1 WHERE song_id=?"

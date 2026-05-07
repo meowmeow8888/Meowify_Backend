@@ -43,6 +43,7 @@ class Auth_handler:
 
     @staticmethod
     def me(client: socket.socket, req: HttpRequest):
+        print("handling me...")
         try:
             cookies = req.headers.get("cookie", "")
 
@@ -92,7 +93,7 @@ class Auth_handler:
             res = HttpResponse.ok()
             res.add_header(
                 "Set-Cookie",
-                f"session={session_id}; HttpOnly; Path=/; SameSite=Lax" #SameSite=None; Secure"
+                f"session={session_id}; HttpOnly; Path=/; SameSite=None; Secure" #"SameSite=Lax
             )
             client.send(res.to_bytes())
         except Exception as e:

@@ -15,8 +15,9 @@ class Home_handler:
             return
         try:
             inst = payload["inst"]
-            params = payload["params"]
-            return Instruction(inst, params)
+            params = payload.get("params") or {}
+            print(inst, params)
+            return Instruction(inst, **params)
         except Exception as e:
             print(e)
             return
@@ -41,10 +42,15 @@ class Home_handler:
         while True:
             try:
                 msg = ws.recv()
+                if msg is None:
+                    print("Client disconnected")
+                    q.put(Instruction("stop"))
+                    break
+
+                if msg.opcode == wsMsg.OP_TEXT:
+                    inst = Home_handler.msg_parser(msg)
+                    if inst:
+                        q.put(inst)
             except Exception as e:
-                print(e)
+                print("error at recv: ",e)
                 return
-            if msg.opcode == wsMsg.OP_TEXT:
-                inst = Home_handler.msg_parser(msg)
-                if inst:
-                    q.put(inst)
