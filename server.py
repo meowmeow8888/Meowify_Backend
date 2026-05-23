@@ -28,16 +28,16 @@ def main():
     s.bind(("0.0.0.0", 8080))
     s.listen(5)
 
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    context.load_cert_chain(certfile="cert.pem", keyfile="key.pem")
+    # context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    # context.load_cert_chain(certfile="cert.pem", keyfile="key.pem")
 
     while True:
         client, addr = s.accept()
         print(f"Client Connected: {addr}")
         try:
-            secure_socket = context.wrap_socket(client, server_side=True)
+            # secure_socket = context.wrap_socket(client, server_side=True)
             print("tls succeed")
-            threading.Thread(target=handle_client, args=(secure_socket, addr,)).start()
+            threading.Thread(target=handle_client, args=(client, addr,)).start() # change client to ...
         except:
             client.close()
 

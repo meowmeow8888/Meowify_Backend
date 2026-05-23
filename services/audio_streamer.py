@@ -13,6 +13,7 @@ class AudioStreamer:
         audio = MP3(self.file_path)
         self.duration = int(audio.info.length)
         self.bitrate = int(audio.info.bitrate / 1000)
+        self._open()
 
     def _open(self):
         if self.file:
@@ -40,7 +41,6 @@ class AudioStreamer:
 
         if not data:
             return None
-
 
         self.offset += len(data)
         self.file.close()

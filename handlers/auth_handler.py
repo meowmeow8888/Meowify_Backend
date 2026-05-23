@@ -93,7 +93,7 @@ class Auth_handler:
             res = HttpResponse.ok()
             res.add_header(
                 "Set-Cookie",
-                f"session={session_id}; HttpOnly; Path=/; SameSite=None; Secure" #"SameSite=Lax
+                f"session={session_id}; HttpOnly; Path=/; SameSite=Lax" #"SameSite=Lax SameSite=None; Secure
             )
             client.send(res.to_bytes())
         except Exception as e:

@@ -132,6 +132,31 @@ class Event_Handler:
                                     }
                                 })))
 
+                    elif inst.inst == "get_top_songs":
+                        with Event_Handler.Lock:
+                            songs = Event_Handler.db.get_top_songs()
+                            print(songs)
+                            for song in songs:
+                                if song:
+                                    with open(song.thumbnail_path, "rb") as f:
+                                        data = f.read()
+                                    b64_data = base64.b64encode(data).decode()
+                                    rel_date = song.release_date.isoformat() if hasattr(song.release_date,
+                                                                                        'isoformat') else str(
+                                        song.release_date)
+
+                                    ws.send(wsMsg.text(json.dumps({
+                                        "type": "song_info",
+                                        "info": {
+                                            "name": song.name,
+                                            "artist": song.artist,
+                                            "album": song.album,
+                                            "release_date": rel_date,
+                                            "likes_count": song.likes_count,
+                                            "thumbnail": b64_data
+                                        }
+                                    })))
+
                     elif inst.inst == "need_chunk":
                         if audio_streamer and playing:
                             chunk = audio_streamer.get_next()

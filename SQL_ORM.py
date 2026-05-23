@@ -248,6 +248,14 @@ class App_ORM:
         self.close_DB()
         return Song(*song) if song else None
 
+    def get_top_songs(self):
+        sql = "SELECT * FROM songs ORDER BY likes_count DESC LIMIT 5"
+        self.open_DB()
+        self.execute(sql)
+        songs = self.cursor.fetchall()
+        self.close_DB()
+        return [Song(*s) for s in songs]
+
     # ----------- Playlists ----------- #
     def insert_playlist(self, playlist: Playlist):
         sql = """

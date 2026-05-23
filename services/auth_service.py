@@ -72,6 +72,7 @@ Use this code to complete your login.""")
     def send_verify(user):
         Auth_service.db.del_verification_info_by_user_id(user.user_id)
         code = Auth_service.create_verification_code()
+        print("sent code - " + code)
         with Auth_service.Lock:
             Auth_service.db.insert_verification_info(Verification_info(user.user_id, code))
         Auth_service.send_verification_code(user.email, code)
