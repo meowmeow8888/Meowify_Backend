@@ -15,6 +15,10 @@ def download_multiple(song_name, limit=3):
 
     ydl_opts = {
         'format': 'bestaudio/best',
+        'noplaylist': True,
+        'skip_unavailable_fragments': True,
+        'ignoreerrors': True,
+        'match_filter': lambda info: None if info.get('duration') and info['duration'] <= 600 else 'too long',
         'outtmpl': {
             'default': str(songs_path / '%(title)s-%(id)s.%(ext)s'),
             'thumbnail': str(thumbs_path / '%(title)s-%(id)s.%(ext)s'),

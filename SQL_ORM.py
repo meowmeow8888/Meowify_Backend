@@ -65,7 +65,7 @@ class Session:
     def __init__(self, session_id, user_id, created_at, last_seen):
         self.session_id = session_id
         self.user_id = user_id
-        self.created_at:datetime = created_at
+        self.created_at: datetime = created_at
         self.last_seen = last_seen
 
 
@@ -248,10 +248,10 @@ class App_ORM:
         self.close_DB()
         return Song(*song) if song else None
 
-    def get_top_songs(self):
-        sql = "SELECT * FROM songs ORDER BY likes_count DESC LIMIT 5"
+    def get_top_songs(self, count):
+        sql = "SELECT * FROM songs ORDER BY likes_count DESC LIMIT ?"
         self.open_DB()
-        self.execute(sql)
+        self.execute(sql, count)
         songs = self.cursor.fetchall()
         self.close_DB()
         return [Song(*s) for s in songs]
@@ -338,3 +338,17 @@ class App_ORM:
         self.execute(sql, last_seen, session_id, user_id)
         self.commit()
         self.close_DB()
+
+
+if __name__ == '__main__':
+    db = App_ORM()
+    table_name = "songs"
+
+    db.open_DB()
+
+    db.execute(f"DELETE FROM {table_name}")
+    db.execute("DELETE FROM sqlite_sequence WHERE name=?", table_name)
+
+    db.commit()
+    db.close_DB()
+    print("deleted", table_name)

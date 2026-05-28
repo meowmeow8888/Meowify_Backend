@@ -56,6 +56,7 @@ class Event_Handler:
                     elif inst.inst == "seek":
                         if audio_streamer:
                             position = inst.params.get("position", 0)
+                            print(position, " - new position")
                             audio_streamer.jump_to_time(position)
                             with instruction_queue.mutex:
                                 instruction_queue.queue.clear()
@@ -107,6 +108,7 @@ class Event_Handler:
                                     parsed_date = datetime.strptime(date_str, "%Y%m%d").date()
                                 except ValueError:
                                     parsed_date = datetime(2000, 1, 1).date()
+                                print("inserting song into database and sending...")
                                 song = Song(0,
                                             s["title"],
                                             s["artist"],
@@ -120,13 +122,16 @@ class Event_Handler:
                                 with open(song.thumbnail_path, "rb") as f:
                                     data = f.read()
                                 enc_data = base64.b64encode(data)
+                                rel_date = song.release_date.isoformat() if hasattr(song.release_date,
+                                                                                    'isoformat') else str(
+                                    song.release_date)
                                 ws.send(wsMsg.text(json.dumps({
                                     "type": "song_info",
                                     "info": {
                                         "name": song.name,
                                         "artist": song.artist,
                                         "album": song.album,
-                                        "release_date": song.release_date,
+                                        "release_date": rel_date,
                                         "likes_count": song.likes_count,
                                         "thumbnail": enc_data
                                     }
@@ -134,7 +139,7 @@ class Event_Handler:
 
                     elif inst.inst == "get_top_songs":
                         with Event_Handler.Lock:
-                            songs = Event_Handler.db.get_top_songs()
+                            songs = Event_Handler.db.get_top_songs(20)
                             print(songs)
                             for song in songs:
                                 if song:
@@ -182,6 +187,7 @@ class Event_Handler:
             except Exception as e:
                 print(e)
                 break
+
 
 if __name__ == '__main__':
     names = [
@@ -287,7 +293,6 @@ if __name__ == '__main__':
         "As It Was (Harry Styles)"
     ]
     db = App_ORM()
-    Lock = threading.Lock()
 
     for name in names:
         s = download_multiple(name, limit=1)[0]
