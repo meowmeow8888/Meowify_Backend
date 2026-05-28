@@ -121,10 +121,11 @@ class Event_Handler:
                                     Event_Handler.db.insert_song(song)
                                 with open(song.thumbnail_path, "rb") as f:
                                     data = f.read()
-                                enc_data = base64.b64encode(data)
+                                b64_data = base64.b64encode(data).decode()
                                 rel_date = song.release_date.isoformat() if hasattr(song.release_date,
                                                                                     'isoformat') else str(
                                     song.release_date)
+
                                 ws.send(wsMsg.text(json.dumps({
                                     "type": "song_info",
                                     "info": {
@@ -133,7 +134,7 @@ class Event_Handler:
                                         "album": song.album,
                                         "release_date": rel_date,
                                         "likes_count": song.likes_count,
-                                        "thumbnail": enc_data
+                                        "thumbnail": b64_data
                                     }
                                 })))
 
@@ -185,8 +186,8 @@ class Event_Handler:
                     })))
                     last_state_update = current_time
             except Exception as e:
-                print(e)
-                break
+               print(e)
+               break
 
 
 if __name__ == '__main__':

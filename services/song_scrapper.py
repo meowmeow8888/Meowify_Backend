@@ -11,7 +11,36 @@ def download_multiple(song_name, limit=3):
     songs_path.mkdir(parents=True, exist_ok=True)
     thumbs_path.mkdir(parents=True, exist_ok=True)
 
-    query = f"ytsearch{limit}:{song_name}"
+    search_query = f"ytsearch{limit + 5}:{song_name}"
+
+    search_opts = {
+        'extract_flat': True,
+        'quiet': True,
+    }
+
+    valid_urls = []
+
+    with yt_dlp.YoutubeDL(search_opts) as ydl:
+        search_info = ydl.extract_info(search_query, download=False)
+        entries = search_info.get('entries', [])
+
+        for entry in entries:
+            url = entry.get('url', '')
+            duration = entry.get('duration')
+
+            if any(kw in url for kw in ['/channel/', '/c/', '/user/', '/@', 'playlist?']):
+                continue
+
+            if not duration or duration > 600:
+                continue
+
+            valid_urls.append(url)
+
+            if len(valid_urls) == limit:
+                break
+
+    if not valid_urls:
+        return []
 
     ydl_opts = {
         'format': 'bestaudio/best',
@@ -39,22 +68,23 @@ def download_multiple(song_name, limit=3):
     results = []
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(query, download=True)
+        for url in valid_urls:
+            info = ydl.extract_info(url, download=True)
 
-        entries = info.get('entries', []) if 'entries' in info else [info]
+            if not info:
+                continue
 
-        for entry in entries:
-            title = entry.get("title")
-            vid_id = entry.get("id")
+            title = info.get("title")
+            vid_id = info.get("id")
 
             audio_path = songs_path / f"{title}-{vid_id}.mp3"
             thumb_path = thumbs_path / f"{title}-{vid_id}.jpg"
 
             results.append({
                 "title": title,
-                "artist": entry.get("artist") or entry.get("uploader"),
-                "album": entry.get("album"),
-                "release_date": entry.get("release_date") or entry.get("upload_date"),
+                "artist": info.get("artist") or info.get("uploader"),
+                "album": info.get("album"),
+                "release_date": info.get("release_date") or info.get("upload_date"),
                 "audio_path": str(audio_path),
                 "thumbnail_path": str(thumb_path),
             })
